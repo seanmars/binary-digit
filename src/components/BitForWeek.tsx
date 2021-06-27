@@ -3,7 +3,9 @@ import { makeStyles, createStyles, Theme } from '@material-ui/core/styles';
 import Paper from '@material-ui/core/Paper';
 import Grid from '@material-ui/core/Grid';
 import { Box, Button, Divider, FormLabel, TextField, Typography } from '@material-ui/core';
-import WeekData from '../data/WeekData';
+import { WeekData, ReverseWeekData } from '../data/WeekData';
+import { Switch } from '@material-ui/core';
+import { FormControlLabel } from '@material-ui/core';
 
 // noinspection TypeScriptValidateTypes
 const useStyles = makeStyles((theme: Theme) =>
@@ -31,7 +33,7 @@ const useStyles = makeStyles((theme: Theme) =>
   }),
 );
 
-const BitGrid = (props: { name: string, value: number, toggled: boolean, clickCallback: (bitValue: number) => void }) => {
+const BitGrid = (props: { name: string, value: number, toggled: boolean, clickCallback: ((bitValue: number) => void) | null }) => {
   const classes = useStyles();
   const { name, value, toggled, clickCallback } = props;
 
@@ -61,17 +63,18 @@ const BitGrid = (props: { name: string, value: number, toggled: boolean, clickCa
 
 export default function BitForWeek() {
   const minValue: number = 0;
-  const maxValue: number = 255;
+  const maxValue: number = 127;
 
   const classes = useStyles();
   const [bitValue, setBitValue] = useState(0b00000000);
+  const [dayReverse, setDayReverse] = useState(false);
 
   const onBitClick = (value: number) => {
     const v = bitValue ^ value;
     setBitValue(v);
   };
 
-  const handleInput = (event: any) => {
+  const handleInput = (event: React.ChangeEvent<HTMLTextAreaElement | HTMLInputElement>) => {
     const inputValue = event.target.value;
     let parsedInt = parseInt(inputValue);
     if (!Number.isFinite(parsedInt)) {
@@ -91,6 +94,28 @@ export default function BitForWeek() {
     setBitValue(parsedInt);
   };
 
+  const handleInputFocused = (event: React.FocusEvent<HTMLTextAreaElement | HTMLInputElement>) => {
+    event.target.select();
+  };
+
+  const handleDayReverse = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const isReverse = !dayReverse;
+    setDayReverse(isReverse);
+    setBitValue(reverseBit(bitValue, isReverse));
+  };
+
+  const reverseBit = (oldValue: number, isReverse: boolean) => {
+    let newValue: number = 0;
+    const data = [...(isReverse ? ReverseWeekData : WeekData)].reverse();
+    const prevData = isReverse ? WeekData : ReverseWeekData;
+
+    prevData.map((o, index) => {
+      newValue += ((oldValue & o.value) !== 0) ? data[index].value : 0;
+    });
+
+    return newValue;
+  };
+
   return (
     <div className={classes.root}>
       <Paper className={classes.control}>
@@ -100,11 +125,19 @@ export default function BitForWeek() {
             <FormLabel>Switch for Day</FormLabel>
           </Grid>
 
+          <Grid item xs={12}>
+            <FormControlLabel
+              control={<Switch checked={dayReverse} onChange={handleDayReverse} />}
+              label="反轉"
+            />
+          </Grid>
+
           {/* bit buttons */}
           <Grid container item xs={12} spacing={1}>
             <Grid item xs />
-            {WeekData.map((o, index) => {
-              const toggled = (bitValue & o.value) === o.value;
+            <BitGrid key={-1} name="-" value={0} toggled={false} clickCallback={null} />
+            {(dayReverse ? ReverseWeekData : WeekData).map((o, index) => {
+              const toggled = (bitValue & o.value) !== 0;
               return <BitGrid key={index} name={o.name} value={o.value} toggled={toggled} clickCallback={onBitClick} />;
             })}
             <Grid item xs />
@@ -118,7 +151,9 @@ export default function BitForWeek() {
               }}>MIN</Button>
             </Grid>
             <Grid item>
-              <TextField value={bitValue} onChange={handleInput}
+              <TextField value={bitValue}
+                         onChange={handleInput}
+                         onFocus={handleInputFocused}
                          type="number"
                          inputProps={{
                            inputMode: 'numeric',
