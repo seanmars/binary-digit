@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { makeStyles, createStyles, Theme } from '@material-ui/core/styles';
 import Paper from '@material-ui/core/Paper';
 import Grid from '@material-ui/core/Grid';
@@ -6,6 +6,8 @@ import { Box, Button, Divider, FormLabel, TextField, Typography } from '@materia
 import { WeekData, ReverseWeekData } from '../data/WeekData';
 import { Switch } from '@material-ui/core';
 import { FormControlLabel } from '@material-ui/core';
+import _ from 'lodash';
+import { log } from 'util';
 
 // noinspection TypeScriptValidateTypes
 const useStyles = makeStyles((theme: Theme) =>
@@ -65,13 +67,26 @@ export default function BitForWeek() {
   const minValue: number = 0;
   const maxValue: number = 127;
 
+  const textInput = useRef(null);
   const classes = useStyles();
   const [bitValue, setBitValue] = useState(0b00000000);
   const [dayReverse, setDayReverse] = useState(false);
+  const [autoToClipboard, setAutoToClipboard] = useState(false);
+
+  const writeToClipboard = async (value: string) => {
+    await navigator.clipboard.writeText(value);
+  };
+
+  const setBitValueAndWriteToClipboard = (value: number, toClipboard: boolean) => {
+    setBitValue(value);
+    if (toClipboard) {
+      writeToClipboard(value.toString()).then();
+    }
+  };
 
   const onBitClick = (value: number) => {
     const v = bitValue ^ value;
-    setBitValue(v);
+    setBitValueAndWriteToClipboard(v, autoToClipboard);
   };
 
   const handleInput = (event: React.ChangeEvent<HTMLTextAreaElement | HTMLInputElement>) => {
@@ -82,16 +97,14 @@ export default function BitForWeek() {
     }
 
     if (parsedInt < minValue) {
-      setBitValue(minValue);
-      return;
+      parsedInt = minValue;
     }
 
     if (parsedInt > maxValue) {
-      setBitValue(maxValue);
-      return;
+      parsedInt = maxValue;
     }
 
-    setBitValue(parsedInt);
+    setBitValueAndWriteToClipboard(parsedInt, autoToClipboard);
   };
 
   const handleInputFocused = (event: React.FocusEvent<HTMLTextAreaElement | HTMLInputElement>) => {
@@ -101,12 +114,18 @@ export default function BitForWeek() {
   const handleDayReverse = (event: React.ChangeEvent<HTMLInputElement>) => {
     const isReverse = !dayReverse;
     setDayReverse(isReverse);
-    setBitValue(reverseBit(bitValue, isReverse));
+    setBitValueAndWriteToClipboard(reverseBit(bitValue, isReverse), autoToClipboard);
+  };
+
+  const handleAutoToClipboard = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const isAutoCopy = !autoToClipboard;
+    setAutoToClipboard(isAutoCopy);
   };
 
   const reverseBit = (oldValue: number, isReverse: boolean) => {
     let newValue: number = 0;
-    const data = [...(isReverse ? ReverseWeekData : WeekData)].reverse();
+    let data = _.cloneDeep((isReverse ? ReverseWeekData : WeekData));
+    _.reverse(data);
     const prevData = isReverse ? WeekData : ReverseWeekData;
 
     prevData.forEach((o, index) => {
@@ -131,6 +150,12 @@ export default function BitForWeek() {
               label="反轉"
             />
           </Grid>
+          <Grid item xs={12}>
+            <FormControlLabel
+              control={<Switch checked={autoToClipboard} onChange={handleAutoToClipboard} />}
+              label="自動複製到剪貼簿"
+            />
+          </Grid>
 
           {/* bit buttons */}
           <Grid container item xs={12} spacing={1}>
@@ -147,11 +172,12 @@ export default function BitForWeek() {
           <Grid container item xs={12} justify="center" alignContent="center" alignItems="center" spacing={3}>
             <Grid item>
               <Button className={classes.utilButton} onClick={() => {
-                setBitValue(minValue);
+                setBitValueAndWriteToClipboard(minValue, autoToClipboard);
               }}>MIN</Button>
             </Grid>
             <Grid item>
-              <TextField value={bitValue}
+              <TextField ref={textInput}
+                         value={bitValue}
                          onChange={handleInput}
                          onFocus={handleInputFocused}
                          type="number"
@@ -165,7 +191,7 @@ export default function BitForWeek() {
             </Grid>
             <Grid item>
               <Button className={classes.utilButton} onClick={() => {
-                setBitValue(maxValue);
+                setBitValueAndWriteToClipboard(maxValue, autoToClipboard);
               }}>MAX</Button>
             </Grid>
           </Grid>
