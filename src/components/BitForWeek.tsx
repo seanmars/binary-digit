@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { makeStyles, createStyles, Theme } from '@material-ui/core/styles';
 import Paper from '@material-ui/core/Paper';
 import Grid from '@material-ui/core/Grid';
@@ -7,7 +7,6 @@ import { WeekData, ReverseWeekData } from '../data/WeekData';
 import { Switch } from '@material-ui/core';
 import { FormControlLabel } from '@material-ui/core';
 import _ from 'lodash';
-import { log } from 'util';
 
 // noinspection TypeScriptValidateTypes
 const useStyles = makeStyles((theme: Theme) =>
