@@ -109,7 +109,7 @@ export default function BitForWeek() {
     const data = [...(isReverse ? ReverseWeekData : WeekData)].reverse();
     const prevData = isReverse ? WeekData : ReverseWeekData;
 
-    prevData.map((o, index) => {
+    prevData.forEach((o, index) => {
       newValue += ((oldValue & o.value) !== 0) ? data[index].value : 0;
     });
 
